@@ -1,12 +1,13 @@
-// authController.js
-const User = require('../models/User');
-const argon2 = require('argon2');
-const { loginSchema, signupSchema } = require('../Validators/userValidator');
+require("../models/sequelizeConfig");
+const User = require("../models/User");
+const argon2 = require("argon2");
 const {
-    // generateAccessToken,
-    generateRefreshToken,
-    generateLongToken,
-  } = require("../helper/authUtils");
+  // generateAccessToken,
+  generateRefreshToken,
+  generateLongToken,
+} = require("../helper/authUtils");
+const { loginSchema, signupSchema } = require('../Validators/userValidator')
+
 // Controller for user sign-up
 const signupUser = async (req, res) => {
     try {
@@ -61,7 +62,8 @@ const signupUser = async (req, res) => {
         message: 'User registration failed',
       });
     }
-};
+  };
+
 
 const signInUser = async (req, res) => {
   try {
@@ -94,9 +96,14 @@ const signInUser = async (req, res) => {
         .json({ success: false, message: "Invalid credential", data: null });
     }
 
-    // Verification related code removed
+    if (!user.isVerified)
+      return res
+        .status(400)
+        .json({ success: false, message: "You are not verified", data: null });
 
     // Generate the access token and refresh token
+    //const accessToken = generateAccessToken(user);
+
     const refreshToken = generateRefreshToken();
     // Store the refresh token in the user document
     user.refreshToken = refreshToken;
@@ -120,6 +127,7 @@ const signInUser = async (req, res) => {
       success: true,
       data: {
         user,
+        // accessToken,
         refreshToken,
       },
       error: null,
@@ -135,13 +143,17 @@ const signInUser = async (req, res) => {
   }
 };
 
+
+
+
 // Controller for user logout
 const logoutUser = async (req, res) => {
   try {
     // Extract token from Authorization header
     const refreshToken = req.headers.authorization?.split(" ")[1];
 
-    // Verification related code removed
+    // Invalidate or clear the access token
+    invalidateAccessToken(refreshToken);
 
     res.status(200).json({
       success: true,
@@ -157,6 +169,10 @@ const logoutUser = async (req, res) => {
     });
   }
 };
+
+
+
+
 
 module.exports = {
   signupUser,
